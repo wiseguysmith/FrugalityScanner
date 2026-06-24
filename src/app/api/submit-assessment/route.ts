@@ -7,11 +7,13 @@ type SubmitPayload = {
   contact: Record<string, string>;
   answers: AssessmentAnswers;
   scores: ScoreResult;
+  otherInputs?: Record<string, unknown>;
 };
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as SubmitPayload;
   const report = generateFallbackReport(payload.answers, payload.scores);
+
   const record = {
     first_name: payload.contact.firstName,
     last_name: payload.contact.lastName,
@@ -20,8 +22,14 @@ export async function POST(request: Request) {
     linkedin_url: payload.contact.linkedinUrl || null,
     company: payload.contact.company,
     website: payload.contact.website,
-    organization_type: payload.answers.organizationType,
-    business_goal: payload.answers.businessGoal,
+    organization_type:
+      payload.answers.organizationType === "Other" && payload.otherInputs?.organizationTypeOther
+        ? `Other: ${payload.otherInputs.organizationTypeOther}`
+        : payload.answers.organizationType,
+    business_goal:
+      payload.answers.businessGoal === "Other" && payload.otherInputs?.businessGoalOther
+        ? `Other: ${payload.otherInputs.businessGoalOther}`
+        : payload.answers.businessGoal,
     team_size: payload.answers.teamSize,
     operational_intelligence_index: payload.scores.operationalIntelligenceIndex,
     operational_friction_score: payload.scores.operationalFrictionScore,
@@ -42,13 +50,32 @@ export async function POST(request: Request) {
     const inserted = await insertAssessment(record);
     assessmentId = inserted.id;
     storageStatus = "stored";
-    await insertResponses(
-      Object.entries(payload.answers).map(([question_key, answer_value]) => ({
+
+    // Store all answer fields plus other-input overrides
+    const responseRows = [
+      ...Object.entries(payload.answers).map(([question_key, answer_value]) => ({
         assessment_id: assessmentId,
         question_key,
         answer_value,
       })),
-    );
+      // Persist "Other" typed values as additional response rows
+      ...(payload.otherInputs
+        ? Object.entries(payload.otherInputs).flatMap(([key, value]) => {
+            if (key === "toolGroupOthers" && value && typeof value === "object") {
+              return Object.entries(value as Record<string, string>).map(([group, text]) => ({
+                assessment_id: assessmentId,
+                question_key: `toolGroup_other_${group}`,
+                answer_value: text,
+              }));
+            }
+            return value
+              ? [{ assessment_id: assessmentId, question_key: key, answer_value: value }]
+              : [];
+          })
+        : []),
+    ];
+
+    await insertResponses(responseRows);
   }
 
   let n8nStatus = "not_configured";
@@ -65,6 +92,7 @@ export async function POST(request: Request) {
           },
           company: { name: payload.contact.company, website: payload.contact.website },
           responses: payload.answers,
+          other_inputs: payload.otherInputs ?? {},
           scores: payload.scores,
           top_findings: payload.scores.topFindings,
           opportunity_estimate: {

@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #08110e;
-  --foreground: #f5f1e8;
-  --panel: #101c18;
-  --panel-2: #17251f;
-  --line: rgba(226, 219, 203, 0.16);
-  --accent: #d8c7a1;
-  --accent-strong: #f1dfb5;
-  --amber: #cda66a;
-  --ink-muted: #b7b0a2;
-  --sage: #9eb5a6;
+  --background: #0b2229;
+  --foreground: #f0ece2;
+  --panel: #102830;
+  --panel-2: #17333d;
+  --line: rgba(32, 80, 90, 0.5);
+  --petrol: #20505A;
+  --tangerine: #F0903C;
+  --charcoal: #444444;
+  --accent: #F0903C;
+  --accent-strong: #f5a460;
+  --ink-muted: #8fa8b0;
 }
 
 * {
@@ -25,7 +26,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #08110e 0%, #0e1713 44%, #111713 100%);
+  background: linear-gradient(180deg, #0b2229 0%, #0e2a31 44%, #112c34 100%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -44,13 +45,13 @@ textarea {
 
 .executive-grid {
   background-image:
-    linear-gradient(rgba(226, 219, 203, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(226, 219, 203, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(32, 80, 90, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32, 80, 90, 0.12) 1px, transparent 1px);
   background-size: 56px 56px;
 }
 
 .brand-shell {
   background:
-    linear-gradient(90deg, rgba(216, 199, 161, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 18rem);
+    linear-gradient(90deg, rgba(32, 80, 90, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18rem);
 }

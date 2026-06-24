@@ -6,10 +6,12 @@ function clamp(value: number, min = 0, max = 100) {
 
 export function scoreAssessment(answers: AssessmentAnswers): ScoreResult {
   const fragmentation = Math.min(5, Math.max(1, Math.ceil(answers.tools.length / 5)));
+
+  // All metrics: 0 = best, 5 = worst — used directly in averages
   const frictionAverage =
-    (answers.dataReentry + answers.leadDropOff + answers.processComplexity + (6 - answers.documentationMaturity)) / 4;
+    (answers.dataReentry + answers.leadDropOff + answers.processComplexity + answers.documentationMaturity) / 4;
   const founderAverage = (answers.founderFatigue + answers.founderDependency) / 2;
-  const structuralAverage = (fragmentation + answers.processComplexity + (6 - answers.documentationMaturity)) / 3;
+  const structuralAverage = (fragmentation + answers.processComplexity + answers.documentationMaturity) / 3;
 
   const operationalFrictionScore = clamp(frictionAverage * 20);
   const founderDependencyIndex = clamp(founderAverage * 20);
@@ -22,8 +24,8 @@ export function scoreAssessment(answers: AssessmentAnswers): ScoreResult {
   const leadRecovery = answers.monthlyOpportunities * (answers.leadDropOff / 5) * 0.08 * answers.averageDealSize;
   const processRecovery = answers.processComplexity * 180;
   const opportunityMid = adminRecovery + leadRecovery + processRecovery;
-  const opportunityLow = Math.max(300, Math.round(opportunityMid * 0.55 / 100) * 100);
-  const opportunityHigh = Math.max(opportunityLow + 700, Math.round(opportunityMid * 1.35 / 100) * 100);
+  const opportunityLow = Math.max(300, Math.round((opportunityMid * 0.55) / 100) * 100);
+  const opportunityHigh = Math.max(opportunityLow + 700, Math.round((opportunityMid * 1.35) / 100) * 100);
 
   return {
     operationalIntelligenceIndex,
@@ -50,11 +52,11 @@ function topFindings(input: {
   const findings = [
     {
       score: input.answers.leadDropOff,
-      text: "Waiting: inbound opportunities are likely losing value because follow-up is slower than the business can afford.",
+      text: "Lead Leakage: inbound opportunities are likely losing value because follow-up is slower than the business can afford.",
     },
     {
       score: input.answers.dataReentry,
-      text: "Process Waste: manual re-entry is consuming time that should be reserved for selling, delivery, or strategic execution.",
+      text: "Automation Gap: manual re-entry is consuming time that should be reserved for selling, delivery, or strategic execution.",
     },
     {
       score: input.founderDependencyIndex / 20,
@@ -66,9 +68,16 @@ function topFindings(input: {
     },
     {
       score: input.answers.processComplexity,
-      text: "Human Capital Friction: high-value people may be carrying low-value coordination work across the workflow.",
+      text: "Process Complexity: high-value people may be carrying low-value coordination work across the workflow.",
+    },
+    {
+      score: input.answers.documentationMaturity,
+      text: "Knowledge Debt: operational knowledge living in people's heads instead of documented systems creates execution risk.",
     },
   ];
 
-  return findings.sort((a, b) => b.score - a.score).slice(0, 3).map((finding) => finding.text);
+  return findings
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((f) => f.text);
 }
