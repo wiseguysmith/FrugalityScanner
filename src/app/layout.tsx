@@ -3,9 +3,9 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "Frugal Studio | Operational Intelligence Diagnostic",
+  title: "Frugality Scanner | Frugal Studio powered by Mindful Tech Automations",
   description:
-    "Identify operational waste, workflow friction, founder dependency, and automation opportunities. A Frugal Studio diagnostic powered by Mindful Tech.",
+    "A 10-minute diagnostic to spot the hidden leaks draining your business. Identify workflow friction, revenue leakage, founder dependency, and automation opportunities.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
