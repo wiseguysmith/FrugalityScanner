@@ -28,10 +28,7 @@ export async function POST(request: Request) {
       payload.answers.organizationType === "Other" && payload.otherInputs?.organizationTypeOther
         ? `Other: ${payload.otherInputs.organizationTypeOther}`
         : payload.answers.organizationType,
-    business_goal:
-      payload.answers.businessGoal === "Other" && payload.otherInputs?.businessGoalOther
-        ? `Other: ${payload.otherInputs.businessGoalOther}`
-        : payload.answers.businessGoal,
+    business_goal: payload.answers.businessGoal,
     team_size: payload.answers.teamSize,
     operational_intelligence_index: payload.scores.operationalIntelligenceIndex,
     operational_friction_score: payload.scores.operationalFrictionScore,

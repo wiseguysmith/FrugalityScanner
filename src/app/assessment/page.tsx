@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, GripVertical, Lock } from "lucide-react";
 import {
   businessGoals,
+  dealSizeRanges,
+  fundingStructures,
   goalBucket,
   initialAnswers,
   metricDefinitions,
@@ -28,8 +30,10 @@ type ContactInfo = {
 
 type OtherInputs = {
   organizationTypeOther: string;
-  businessGoalOther: string;
+  businessGoalRanking: string[];      // Full ranked list from step 2
   toolGroupOthers: Record<string, string>;
+  dealSizeRange: string;
+  fundingStructure: string;
 };
 
 const initialContact: ContactInfo = {
@@ -44,16 +48,34 @@ const initialContact: ContactInfo = {
 
 const initialOtherInputs: OtherInputs = {
   organizationTypeOther: "",
-  businessGoalOther: "",
+  businessGoalRanking: [],
   toolGroupOthers: {},
+  dealSizeRange: "",
+  fundingStructure: "",
 };
 
-const steps = ["Contact", "Business Type", "Main Goal", "Team Scale", "Tech Stack", "Business Metrics", "Finance"];
+const steps = [
+  "Contact",
+  "Business Type",
+  "Main Goal",
+  "Team Scale",
+  "Tech Stack",
+  "Business Metrics",
+  "Finance",
+];
 
-const METRIC_KEYS = metricDefinitions.map((m) => m.key);
+const METRIC_KEYS = metricDefinitions.map((m) => String(m.key));
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/** Returns tool identifiers that "belong" to a group for mandatory-check purposes */
+function groupToolIds(groupLabel: string, tools: string[]) {
+  return [
+    ...tools.map((t) => (t === "Other" ? `${groupLabel}:Other` : t)),
+    `${groupLabel}:None`,
+  ];
 }
 
 export default function AssessmentPage() {
@@ -62,11 +84,14 @@ export default function AssessmentPage() {
   const [answers, setAnswers] = useState<AssessmentAnswers>(initialAnswers);
   const [otherInputs, setOtherInputs] = useState<OtherInputs>(initialOtherInputs);
   const [touchedMetrics, setTouchedMetrics] = useState<Set<string>>(new Set());
+  const [rankedGoals, setRankedGoals] = useState<string[]>([]);
   const [step, setStep] = useState(0);
   const [emailError, setEmailError] = useState("");
 
   const currentGoalBucket = goalBucket(answers.organizationType);
   const currentGoals = businessGoals[currentGoalBucket];
+
+  // ── state helpers ────────────────────────────────────────────────────────────
 
   function updateContact<T extends keyof ContactInfo>(key: T, value: string) {
     setContact((c) => ({ ...c, [key]: value }));
@@ -81,15 +106,25 @@ export default function AssessmentPage() {
     setTouchedMetrics((prev) => new Set([...prev, key]));
   }
 
-  function toggleTool(tool: string) {
-    setAnswers((a) => ({
-      ...a,
-      tools: a.tools.includes(tool) ? a.tools.filter((t) => t !== tool) : [...a.tools, tool],
-    }));
-  }
+  function toggleTool(tool: string, groupLabel: string) {
+    setAnswers((a) => {
+      const isNone = tool === `${groupLabel}:None`;
+      const allGroupIds = groupToolIds(groupLabel, toolGroups.find((g) => g.label === groupLabel)?.tools ?? []);
 
-  function setOtherInput(field: keyof Omit<OtherInputs, "toolGroupOthers">, value: string) {
-    setOtherInputs((o) => ({ ...o, [field]: value }));
+      if (a.tools.includes(tool)) {
+        // Deselect
+        return { ...a, tools: a.tools.filter((t) => t !== tool) };
+      }
+      if (isNone) {
+        // Selecting "None" clears all other group selections
+        return { ...a, tools: [...a.tools.filter((t) => !allGroupIds.includes(t)), tool] };
+      }
+      // Selecting a real tool clears "None" for that group
+      return {
+        ...a,
+        tools: [...a.tools.filter((t) => t !== `${groupLabel}:None`), tool],
+      };
+    });
   }
 
   function setToolGroupOther(groupLabel: string, value: string) {
@@ -99,7 +134,14 @@ export default function AssessmentPage() {
     }));
   }
 
-  const allMetricsTouched = METRIC_KEYS.every((k) => touchedMetrics.has(String(k)));
+  // ── canContinue ──────────────────────────────────────────────────────────────
+
+  const allGroupsAnswered = toolGroups.every((group) => {
+    const ids = groupToolIds(group.label, group.tools);
+    return ids.some((id) => answers.tools.includes(id));
+  });
+
+  const allMetricsTouched = METRIC_KEYS.every((k) => touchedMetrics.has(k));
 
   const canContinue =
     step === 0
@@ -116,15 +158,16 @@ export default function AssessmentPage() {
               (answers.organizationType !== "Other" || otherInputs.organizationTypeOther.trim()),
           )
         : step === 2
-          ? Boolean(
-              answers.businessGoal &&
-                (answers.businessGoal !== "Other" || otherInputs.businessGoalOther.trim()),
-            )
+          ? rankedGoals.length > 0
           : step === 3
             ? Boolean(answers.teamSize)
-            : step === 5
-              ? allMetricsTouched
-              : true;
+            : step === 4
+              ? allGroupsAnswered
+              : step === 5
+                ? allMetricsTouched
+                : step === 6
+                  ? Boolean(otherInputs.dealSizeRange && otherInputs.fundingStructure)
+                  : true;
 
   function next() {
     if (step === 0 && !isValidEmail(contact.email)) {
@@ -132,18 +175,37 @@ export default function AssessmentPage() {
       return;
     }
     setEmailError("");
+
+    // Step 1→2: initialise ranked goals for this org type
+    if (step === 1) {
+      setRankedGoals(currentGoals);
+    }
+
+    // Step 2: persist ranked goals; set top choice as businessGoal for scoring
+    if (step === 2) {
+      setOtherInputs((o) => ({ ...o, businessGoalRanking: rankedGoals }));
+      update("businessGoal", rankedGoals[0] ?? "");
+    }
+
     if (step < steps.length - 1) {
       setStep(step + 1);
       window.scrollTo({ top: 0 });
       return;
     }
-    const scores = scoreAssessment(answers);
+
+    // Final step — map deal size range to numeric for scoring
+    const selectedRange = dealSizeRanges.find((r) => r.label === otherInputs.dealSizeRange);
+    const finalAnswers = { ...answers, averageDealSize: selectedRange?.value ?? answers.averageDealSize };
+
+    const scores = scoreAssessment(finalAnswers);
     window.localStorage.setItem(
       "frugality-assessment",
-      JSON.stringify({ contact, answers, scores, otherInputs }),
+      JSON.stringify({ contact, answers: finalAnswers, scores, otherInputs }),
     );
     router.push("/results");
   }
+
+  // ── render ───────────────────────────────────────────────────────────────────
 
   return (
     <main className="min-h-screen px-6 py-8">
@@ -151,14 +213,14 @@ export default function AssessmentPage() {
         <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--tangerine)]">
-              Frugal Studio powered by Mindful Tech
+              Frugal Studio powered by Mindful Tech Automations
             </div>
-            <h1 className="mt-1 text-3xl font-bold text-white">Operational Intelligence Diagnostic</h1>
+            <h1 className="mt-1 text-3xl font-bold text-white">Frugality Scanner</h1>
           </div>
           <div className="text-sm text-[var(--ink-muted)]">~10 min diagnostic</div>
         </header>
 
-        {/* Progress bar */}
+        {/* Progress */}
         <div className="mb-8 grid grid-cols-7 gap-2">
           {steps.map((label, index) => (
             <div key={label} title={label} className="h-1.5 rounded-full bg-white/10">
@@ -180,13 +242,13 @@ export default function AssessmentPage() {
             Section {step + 1} of {steps.length}: {steps[step]}
           </div>
 
-          {/* ─── Step 0: Contact ─────────────────────────────────────────── */}
+          {/* ── Step 0: Contact ──────────────────────────────────────────────── */}
           {step === 0 && (
             <div>
               <h2 className="text-3xl font-bold text-white">Let&apos;s get started</h2>
               <p className="mt-2 text-[var(--ink-muted)]">
-                We&apos;ll send your personalised Operational Intelligence Report to this email once you complete
-                the diagnostic.
+                We&apos;ll send your personalised Frugality Scanner report to this email once you complete the
+                diagnostic.
               </p>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <ContactInput
@@ -212,11 +274,8 @@ export default function AssessmentPage() {
                     }}
                     required
                     error={emailError}
-                    hint="Your full report will be sent here. This also acts as verification of your contact details."
+                    hint="Your full report will be sent here — this also acts as lightweight verification."
                   />
-                  {/* TODO: Add disposable-email domain blocking here in future.
-                      For V1 the full report send acts as lightweight email validation. */}
-                  {/* TODO: Add OTP email verification when backend supports it. */}
                 </div>
                 <ContactInput
                   label="Business / company name"
@@ -228,7 +287,8 @@ export default function AssessmentPage() {
                   label="LinkedIn URL"
                   value={contact.linkedinUrl}
                   onChange={(v) => updateContact("linkedinUrl", v)}
-                  hint="Strongly recommended — helps us verify your profile and personalise your report. Not required."
+                  hint="Required — helps us personalise your report and verify your profile."
+                  required
                 />
                 <ContactInput
                   label="Website"
@@ -243,24 +303,24 @@ export default function AssessmentPage() {
                 />
               </div>
 
-              {/* Privacy notice — shown on contact step */}
-              <div className="mt-8 rounded-lg border border-[rgba(32,80,90,0.5)] bg-[rgba(32,80,90,0.12)] p-5">
-                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-                  <Lock size={14} className="text-[var(--tangerine)]" />
+              {/* Privacy notice */}
+              <div className="mt-8 rounded-lg border border-[var(--tangerine)] bg-[rgba(240,144,60,0.1)] p-5">
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--tangerine)]">
+                  <Lock size={14} />
                   Frugal Studio Data Privacy Commitment
                 </div>
-                <p className="text-xs leading-6 text-[var(--ink-muted)]">
+                <p className="text-xs leading-6 text-[#c4d6cd]">
                   Your responses are used only to generate your diagnostic score, identify operational improvement
                   opportunities, and prepare your report. Your contact details, business metrics, and software
                   stack information are kept confidential and are not sold, shared, or distributed to third
-                  parties. Data is stored securely and used only by Frugal Studio and Mindful Tech for internal
-                  analysis, reporting, and follow-up related to this assessment.
+                  parties. Data is stored securely and used only by Frugal Studio and Mindful Tech Automations
+                  for internal analysis, reporting, and follow-up related to this assessment.
                 </p>
               </div>
             </div>
           )}
 
-          {/* ─── Step 1: Business Type ─────────────────────────────────── */}
+          {/* ── Step 1: Business Type ─────────────────────────────────────── */}
           {step === 1 && (
             <div>
               <ChoiceGrid
@@ -274,7 +334,7 @@ export default function AssessmentPage() {
                   <ContactInput
                     label="Please describe your business type"
                     value={otherInputs.organizationTypeOther}
-                    onChange={(v) => setOtherInput("organizationTypeOther", v)}
+                    onChange={(v) => setOtherInputs((o) => ({ ...o, organizationTypeOther: v }))}
                     required
                   />
                 </div>
@@ -282,29 +342,23 @@ export default function AssessmentPage() {
             </div>
           )}
 
-          {/* ─── Step 2: Main Goal ─────────────────────────────────────── */}
+          {/* ── Step 2: Main Goal — drag to rank ─────────────────────────── */}
           {step === 2 && (
             <div>
-              <ChoiceGrid
-                title="What is the main business goal right now?"
-                options={currentGoals}
-                value={answers.businessGoal}
-                onSelect={(value) => update("businessGoal", value)}
-              />
-              {answers.businessGoal === "Other" && (
-                <div className="mt-4">
-                  <ContactInput
-                    label="Please describe your main goal"
-                    value={otherInputs.businessGoalOther}
-                    onChange={(v) => setOtherInput("businessGoalOther", v)}
-                    required
-                  />
-                </div>
-              )}
+              <h2 className="text-3xl font-bold text-white">Rank your main business goals</h2>
+              <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                Drag the items below to rank all goals in priority order — most important at the top.
+              </p>
+              <div className="mt-6">
+                <DragRankList
+                  items={rankedGoals.length > 0 ? rankedGoals : currentGoals}
+                  onReorder={(items) => setRankedGoals(items)}
+                />
+              </div>
             </div>
           )}
 
-          {/* ─── Step 3: Team Scale ────────────────────────────────────── */}
+          {/* ── Step 3: Team Scale ─────────────────────────────────────────── */}
           {step === 3 && (
             <ChoiceGrid
               title="What is the current scale of your core team?"
@@ -314,72 +368,108 @@ export default function AssessmentPage() {
             />
           )}
 
-          {/* ─── Step 4: Tech Stack ────────────────────────────────────── */}
+          {/* ── Step 4: Tech Stack ─────────────────────────────────────────── */}
           {step === 4 && (
             <div>
-              <h2 className="text-3xl font-bold text-white">Which tools are active in the operation?</h2>
-              <p className="mt-2 text-sm text-[var(--ink-muted)]">Select all that apply across each category.</p>
-              <div className="mt-6 grid gap-5">
-                {toolGroups.map((group) => (
-                  <div key={group.label}>
-                    <div className="mb-3 text-sm font-semibold text-[var(--ink-muted)]">{group.label}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {group.tools.map((tool) => {
-                        if (tool === "Other") {
-                          const groupOtherActive = answers.tools.includes(`${group.label}:Other`);
-                          return (
-                            <div key="Other" className="flex flex-col gap-2">
-                              <button
-                                type="button"
-                                onClick={() => toggleTool(`${group.label}:Other`)}
-                                className={`rounded-md border px-3 py-2 text-sm transition ${
-                                  groupOtherActive
-                                    ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)] text-white"
-                                    : "border-[var(--line)] bg-white/[0.035] text-[#8fa8b0] hover:border-white/30"
-                                }`}
-                              >
-                                Other
-                              </button>
-                              {groupOtherActive && (
-                                <input
-                                  className="h-10 w-48 rounded-md border border-[var(--tangerine)] bg-[var(--panel-2)] px-3 text-sm text-white outline-none placeholder:text-[var(--ink-muted)]"
-                                  placeholder={`Specify ${group.label} tool…`}
-                                  value={otherInputs.toolGroupOthers[group.label] ?? ""}
-                                  onChange={(e) => setToolGroupOther(group.label, e.target.value)}
-                                />
-                              )}
-                            </div>
-                          );
-                        }
-                        return (
+              <h2 className="text-3xl font-bold text-white">Tech Stack</h2>
+              <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                Every category is mandatory. Select all tools that apply — or choose{" "}
+                <strong className="text-white">None</strong> if the category is not used.
+              </p>
+              {!allGroupsAnswered && (
+                <div className="mt-3 rounded-md bg-[rgba(240,144,60,0.1)] px-4 py-2 text-xs text-[var(--tangerine)]">
+                  {toolGroups.filter((g) => {
+                    const ids = groupToolIds(g.label, g.tools);
+                    return !ids.some((id) => answers.tools.includes(id));
+                  }).length}{" "}
+                  categor
+                  {toolGroups.filter((g) => {
+                    const ids = groupToolIds(g.label, g.tools);
+                    return !ids.some((id) => answers.tools.includes(id));
+                  }).length === 1
+                    ? "y"
+                    : "ies"}{" "}
+                  remaining
+                </div>
+              )}
+              <div className="mt-6 grid gap-6">
+                {toolGroups.map((group) => {
+                  const ids = groupToolIds(group.label, group.tools);
+                  const groupAnswered = ids.some((id) => answers.tools.includes(id));
+                  return (
+                    <div key={group.label}>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="text-sm font-semibold text-[#c4d6cd]">{group.label}</span>
+                        {groupAnswered && (
+                          <span className="rounded-full bg-[rgba(94,203,138,0.15)] px-2 py-0.5 text-[10px] font-semibold text-[#5ecb8a]">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {/* Named tools */}
+                        {group.tools.map((tool) => (
                           <button
                             key={tool}
                             type="button"
-                            onClick={() => toggleTool(tool)}
+                            onClick={() => toggleTool(tool, group.label)}
                             className={`rounded-md border px-3 py-2 text-sm transition ${
                               answers.tools.includes(tool)
                                 ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)] text-white"
-                                : "border-[var(--line)] bg-white/[0.035] text-[#8fa8b0] hover:border-white/30"
+                                : "border-[var(--line)] bg-white/[0.03] text-[#8fa8b0] hover:border-white/30 hover:text-white"
                             }`}
                           >
                             {tool}
                           </button>
-                        );
-                      })}
+                        ))}
+                        {/* Other */}
+                        <button
+                          type="button"
+                          onClick={() => toggleTool(`${group.label}:Other`, group.label)}
+                          className={`rounded-md border px-3 py-2 text-sm transition ${
+                            answers.tools.includes(`${group.label}:Other`)
+                              ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)] text-white"
+                              : "border-[var(--line)] bg-white/[0.03] text-[#8fa8b0] hover:border-white/30 hover:text-white"
+                          }`}
+                        >
+                          Other
+                        </button>
+                        {/* None */}
+                        <button
+                          type="button"
+                          onClick={() => toggleTool(`${group.label}:None`, group.label)}
+                          className={`rounded-md border px-3 py-2 text-sm transition ${
+                            answers.tools.includes(`${group.label}:None`)
+                              ? "border-[#8fa8b0] bg-white/10 text-white"
+                              : "border-[var(--line)] bg-white/[0.03] text-[#8fa8b0] hover:border-white/30 hover:text-white"
+                          }`}
+                        >
+                          None
+                        </button>
+                      </div>
+                      {/* Custom "Other" text input */}
+                      {answers.tools.includes(`${group.label}:Other`) && (
+                        <input
+                          className="mt-2 h-10 w-64 rounded-md border border-[var(--tangerine)] bg-[var(--panel-2)] px-3 text-sm text-white outline-none placeholder:text-[var(--ink-muted)]"
+                          placeholder={`Specify ${group.label} tool…`}
+                          value={otherInputs.toolGroupOthers[group.label] ?? ""}
+                          onChange={(e) => setToolGroupOther(group.label, e.target.value)}
+                        />
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* ─── Step 5: Business Metrics ──────────────────────────────── */}
+          {/* ── Step 5: Business Metrics — multiple choice cards ──────────── */}
           {step === 5 && (
             <div>
               <h2 className="text-3xl font-bold text-white">Business Metrics</h2>
               <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                Rate each metric from 0 (best) to 5 (worst). Move each slider to register your answer. All six
-                must be completed before continuing.
+                Select the option that best describes your current situation for each metric. All six must be
+                answered before continuing.
               </p>
               {!allMetricsTouched && (
                 <div className="mt-3 rounded-md bg-[rgba(240,144,60,0.1)] px-4 py-2 text-xs text-[var(--tangerine)]">
@@ -387,29 +477,54 @@ export default function AssessmentPage() {
                   {METRIC_KEYS.length - touchedMetrics.size === 1 ? "" : "s"} remaining
                 </div>
               )}
-              <div className="mt-5 grid gap-4">
-                {metricDefinitions.map((def) => (
-                  <MetricSlider
-                    key={String(def.key)}
-                    definition={def}
-                    value={answers[def.key] as number}
-                    touched={touchedMetrics.has(String(def.key))}
-                    onChange={(v) => touchMetric(String(def.key), v)}
-                  />
-                ))}
+              <div className="mt-5 grid gap-6">
+                {metricDefinitions.map((def) => {
+                  const currentValue = answers[def.key] as number;
+                  const isTouched = touchedMetrics.has(String(def.key));
+                  return (
+                    <MetricChoiceCard
+                      key={String(def.key)}
+                      definition={def}
+                      value={isTouched ? currentValue : null}
+                      onSelect={(v) => touchMetric(String(def.key), v)}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* ─── Step 6: Finance ───────────────────────────────────────── */}
+          {/* ── Step 6: Finance ─────────────────────────────────────────────── */}
           {step === 6 && (
             <div>
               <h2 className="text-3xl font-bold text-white">Finance</h2>
               <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                These figures are used to estimate a potential savings and recovery range — not a guarantee.
-                Automation can reduce operational waste, recover lost leads, and reduce manual admin hours.
+                These figures generate an estimated savings and recovery range — not a guarantee. Automation can
+                reduce operational waste, recover lost leads, and cut manual admin time.
               </p>
+
               <div className="mt-6 grid gap-6">
+                {/* Inbound leads slider */}
+                <FinanceRange
+                  label="Monthly Inbound Opportunities"
+                  hint="How many new leads, inquiries, or prospects enter your pipeline each month."
+                  min={0}
+                  max={500}
+                  step={10}
+                  value={answers.monthlyOpportunities}
+                  onChange={(v) => update("monthlyOpportunities", v)}
+                />
+                {/* Outbound leads slider (new) */}
+                <FinanceRange
+                  label="Monthly Outbound Activities"
+                  hint="How many proactive outbound contacts, campaigns, or follow-ups your team initiates each month."
+                  min={0}
+                  max={500}
+                  step={10}
+                  value={answers.outboundLeads}
+                  onChange={(v) => update("outboundLeads", v)}
+                />
+                {/* Hourly value slider */}
                 <FinanceRange
                   label="Average Strategic Hourly Value"
                   hint="Estimated hourly value of your leadership or senior team time — used to calculate the cost of admin drag."
@@ -421,30 +536,63 @@ export default function AssessmentPage() {
                   value={answers.hourlyValue}
                   onChange={(v) => update("hourlyValue", v)}
                 />
-                <FinanceRange
-                  label="Monthly Inbound Opportunities"
-                  hint="How many new leads, inquiries, or prospects enter your pipeline each month."
-                  min={0}
-                  max={500}
-                  step={10}
-                  value={answers.monthlyOpportunities}
-                  onChange={(v) => update("monthlyOpportunities", v)}
-                />
-                <FinanceRange
-                  label="Average Deal Size / Contract Value"
-                  hint="Typical contract or deal value — used to estimate potential revenue recovery from reduced lead leakage."
-                  prefix="$"
-                  min={100}
-                  max={10000}
-                  step={100}
-                  value={answers.averageDealSize}
-                  onChange={(v) => update("averageDealSize", v)}
-                />
+
+                {/* Deal size ranges — multiple choice */}
+                <div>
+                  <div className="mb-1 font-semibold text-white">Average Deal Size / Contract Value</div>
+                  <div className="mb-3 text-sm text-[var(--ink-muted)]">
+                    Select the range that best represents your typical contract or project value.
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {dealSizeRanges.map(({ label }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          setOtherInputs((o) => ({ ...o, dealSizeRange: label }));
+                          const range = dealSizeRanges.find((r) => r.label === label);
+                          if (range) update("averageDealSize", range.value);
+                        }}
+                        className={`rounded-md border px-4 py-3 text-left text-sm transition ${
+                          otherInputs.dealSizeRange === label
+                            ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)] text-white"
+                            : "border-[var(--line)] bg-white/[0.03] text-[#8fa8b0] hover:border-white/30 hover:text-white"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Funding structure — multiple choice */}
+                <div>
+                  <div className="mb-1 font-semibold text-white">Primary Business Funding Structure</div>
+                  <div className="mb-3 text-sm text-[var(--ink-muted)]">
+                    Select the funding model that best describes your business.
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {fundingStructures.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setOtherInputs((o) => ({ ...o, fundingStructure: option }))}
+                        className={`rounded-md border px-4 py-3 text-left text-sm transition ${
+                          otherInputs.fundingStructure === option
+                            ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)] text-white"
+                            : "border-[var(--line)] bg-white/[0.03] text-[#8fa8b0] hover:border-white/30 hover:text-white"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
+
               <p className="mt-5 text-xs leading-6 text-[var(--ink-muted)]">
-                All figures generate an <em>estimated savings opportunity range</em>. Language such as
-                &quot;potential savings range&quot; is used throughout — no specific financial outcome is
-                guaranteed.
+                All figures generate an <em>estimated savings opportunity range</em>. No specific financial
+                outcome is guaranteed.
               </p>
             </div>
           )}
@@ -466,7 +614,7 @@ export default function AssessmentPage() {
               type="button"
               onClick={next}
               disabled={!canContinue}
-              className="inline-flex h-11 items-center gap-2 rounded-md bg-[var(--petrol)] px-5 text-sm font-bold text-white transition hover:bg-[#286878] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center gap-2 rounded-md bg-[var(--tangerine)] px-5 text-sm font-bold text-white transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {step === steps.length - 1 ? "See My Results" : "Continue"} <ArrowRight size={16} />
             </button>
@@ -477,7 +625,7 @@ export default function AssessmentPage() {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function ContactInput({
   label,
@@ -540,7 +688,7 @@ function ChoiceGrid({
             className={`rounded-md border p-4 text-left text-sm transition ${
               value === option
                 ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)] text-white"
-                : "border-[var(--line)] bg-white/[0.035] text-[#8fa8b0] hover:border-white/30 hover:text-white"
+                : "border-[var(--line)] bg-white/[0.03] text-[#8fa8b0] hover:border-white/30 hover:text-white"
             }`}
           >
             {option}
@@ -551,28 +699,131 @@ function ChoiceGrid({
   );
 }
 
-function MetricSlider({
+// ── Drag-to-rank ──────────────────────────────────────────────────────────────
+
+function DragRankList({
+  items,
+  onReorder,
+}: {
+  items: string[];
+  onReorder: (items: string[]) => void;
+}) {
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
+  function handleDragStart(index: number) {
+    dragIndexRef.current = index;
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    setDragOver(index);
+  }
+
+  function handleDrop(index: number) {
+    const from = dragIndexRef.current;
+    if (from === null || from === index) {
+      setDragOver(null);
+      return;
+    }
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(index, 0, moved);
+    dragIndexRef.current = null;
+    setDragOver(null);
+    onReorder(next);
+  }
+
+  function handleDragEnd() {
+    dragIndexRef.current = null;
+    setDragOver(null);
+  }
+
+  // Mobile: move up/down buttons
+  function moveUp(index: number) {
+    if (index === 0) return;
+    const next = [...items];
+    [next[index - 1], next[index]] = [next[index], next[index - 1]];
+    onReorder(next);
+  }
+
+  function moveDown(index: number) {
+    if (index === items.length - 1) return;
+    const next = [...items];
+    [next[index], next[index + 1]] = [next[index + 1], next[index]];
+    onReorder(next);
+  }
+
+  return (
+    <div className="grid gap-2">
+      {items.map((item, index) => (
+        <div
+          key={item}
+          draggable
+          onDragStart={() => handleDragStart(index)}
+          onDragOver={(e) => handleDragOver(e, index)}
+          onDrop={() => handleDrop(index)}
+          onDragEnd={handleDragEnd}
+          className={`flex items-center gap-3 rounded-md border p-3 transition ${
+            dragOver === index
+              ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)]"
+              : "cursor-grab border-[var(--line)] bg-white/[0.03] active:cursor-grabbing"
+          }`}
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--petrol)] text-xs font-bold text-white">
+            {index + 1}
+          </span>
+          <span className="flex-1 text-sm text-white">{item}</span>
+          {/* Mobile move buttons */}
+          <div className="flex flex-col gap-0.5 sm:hidden">
+            <button
+              type="button"
+              onClick={() => moveUp(index)}
+              disabled={index === 0}
+              className="rounded p-0.5 text-[var(--ink-muted)] hover:text-white disabled:opacity-30"
+            >
+              <ChevronUp size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => moveDown(index)}
+              disabled={index === items.length - 1}
+              className="rounded p-0.5 text-[var(--ink-muted)] hover:text-white disabled:opacity-30"
+            >
+              <ChevronDown size={14} />
+            </button>
+          </div>
+          <GripVertical size={14} className="hidden shrink-0 text-[var(--ink-muted)] sm:block" />
+        </div>
+      ))}
+      <p className="mt-2 text-xs text-[var(--ink-muted)]">
+        Drag items to reorder · Use arrows on mobile · #1 = highest priority
+      </p>
+    </div>
+  );
+}
+
+// ── Metric multiple-choice card ───────────────────────────────────────────────
+
+function MetricChoiceCard({
   definition,
   value,
-  touched,
-  onChange,
+  onSelect,
 }: {
   definition: (typeof metricDefinitions)[0];
-  value: number;
-  touched: boolean;
-  onChange: (v: number) => void;
+  value: number | null;
+  onSelect: (v: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const scaleLabel = definition.scaleLabels[value] ?? "";
 
   return (
     <div className="rounded-md border border-[var(--line)] bg-white/[0.03] p-4">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1">
           <div className="font-semibold text-white">
             {definition.label}
-            {definition.sublabel && (
-              <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">({definition.sublabel})</span>
+            {definition.unit && (
+              <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">({definition.unit})</span>
             )}
           </div>
           <div className="mt-1 text-sm text-[var(--ink-muted)]">{definition.shortDesc}</div>
@@ -597,35 +848,41 @@ function MetricSlider({
             </div>
           )}
         </div>
-        <div
-          className={`shrink-0 rounded-md px-3 py-1 text-xs font-bold ${
-            touched
-              ? "bg-[rgba(240,144,60,0.15)] text-[var(--tangerine)]"
-              : "bg-white/5 text-[var(--ink-muted)]"
-          }`}
-        >
-          {touched ? `${value}` : "—"}
-        </div>
+        {value !== null && (
+          <div className="shrink-0 rounded-md bg-[rgba(240,144,60,0.15)] px-3 py-1 text-xs font-bold text-[var(--tangerine)]">
+            {value}/5
+          </div>
+        )}
       </div>
-      {touched && (
-        <div className="mt-2 text-xs font-medium text-white/70">{scaleLabel}</div>
-      )}
-      <input
-        className="mt-3 w-full accent-[var(--tangerine)]"
-        type="range"
-        min={0}
-        max={5}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-      <div className="mt-1 flex justify-between text-[10px] text-[var(--ink-muted)]">
-        <span>0 — Best</span>
-        <span>5 — Worst</span>
+
+      <div className="mt-4 grid gap-2">
+        {definition.scaleDescriptions.map((desc, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onSelect(i)}
+            className={`flex items-start gap-3 rounded-md border px-4 py-3 text-left text-sm transition ${
+              value === i
+                ? "border-[var(--tangerine)] bg-[rgba(240,144,60,0.12)] text-white"
+                : "border-[var(--line)] bg-white/[0.02] text-[#8fa8b0] hover:border-white/20 hover:text-white"
+            }`}
+          >
+            <span
+              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                value === i ? "bg-[var(--tangerine)] text-white" : "bg-white/10 text-[var(--ink-muted)]"
+              }`}
+            >
+              {i}
+            </span>
+            <span>{desc}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
 }
+
+// ── Finance range slider ──────────────────────────────────────────────────────
 
 function FinanceRange({
   label,
@@ -685,4 +942,3 @@ function FinanceRange({
     </label>
   );
 }
-

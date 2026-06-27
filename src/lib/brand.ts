@@ -1,7 +1,7 @@
 export const BRAND = {
   name: "Frugal Studio",
-  poweredBy: "Mindful Tech",
-  cobranded: "Frugal Studio powered by Mindful Tech",
+  poweredBy: "Mindful Tech Automations",
+  cobranded: "Frugal Studio powered by Mindful Tech Automations",
   tagline: "Operational Intelligence Diagnostic",
   duration: "~10 min",
 } as const;
