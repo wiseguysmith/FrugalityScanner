@@ -77,10 +77,14 @@ export async function POST(request: Request) {
     await insertResponses(responseRows);
   }
 
+  const WEBHOOK_URL =
+    process.env.N8N_WEBHOOK_URL ||
+    "https://mind-fultechnologies.app.n8n.cloud/webhook/frugality-scanner";
+
   let n8nStatus = "not_configured";
-  if (process.env.N8N_WEBHOOK_URL) {
+  if (WEBHOOK_URL) {
     try {
-      const webhookResponse = await fetch(process.env.N8N_WEBHOOK_URL, {
+      const webhookResponse = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
