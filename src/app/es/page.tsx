@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowRight, Gauge, Layers3, LineChart, Workflow } from "lucide-react";
+import { ArrowRight, Gauge, Layers3, LineChart, Linkedin, Workflow } from "lucide-react";
 import { ButtonLink } from "@/components/ButtonLink";
 import type { LucideIcon } from "lucide-react";
 
-const CONSULTING_PHOTO = "/consulting-photo.jpg";
+const LINKEDIN_URL = "https://www.linkedin.com/company/mindfultechnologies";
 
 const measures: [string, string, LucideIcon][] = [
   ["Fricción en Flujos de Trabajo", "Donde las transferencias manuales y aprobaciones redundantes frenan tu velocidad de ejecución diaria.", Workflow],
@@ -93,31 +93,41 @@ export default function HomeES() {
         </div>
       </section>
 
-      {/* ── Para quién — dos columnas con foto ────────────────────────── */}
+      {/* ── Para quién — 3 columnas ───────────────────────────────────── */}
       <section className="section-alt border-b border-[var(--line)] px-6 py-16">
         <div className="mx-auto max-w-7xl">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div className="flex flex-col gap-5">
-              {infoBoxes.map(({ title, text }) => (
-                <div key={title} className="rounded-xl border border-[var(--line)] bg-white p-6 shadow-sm">
-                  <h3 className="font-bold text-[var(--petrol)]">{title}</h3>
-                  <p className="mt-2 text-sm leading-7 text-[var(--charcoal)]">{text}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-center lg:justify-end">
-              <div className="relative">
-                <img
-                  src={CONSULTING_PHOTO}
-                  alt="Felipe Hernández Villa-Roel — Frugal Studio"
-                  className="h-[480px] w-[360px] rounded-2xl object-cover shadow-xl"
-                  onError={(e) => {
-                    (e.currentTarget.parentElement as HTMLElement).style.display = "none";
-                  }}
-                />
-                <div className="absolute -bottom-3 -right-3 -z-10 h-full w-full rounded-2xl border-2 border-[var(--petrol)] opacity-20" />
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-[var(--petrol)]">Construido para decisiones operacionales más inteligentes.</h2>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            {infoBoxes.map(({ title, text }) => (
+              <div key={title} className="rounded-xl border border-[var(--line)] bg-white p-6 shadow-sm">
+                <h3 className="font-bold text-[var(--petrol)]">{title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[var(--charcoal)]">{text}</p>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Team / Powered by ─────────────────────────────────────────── */}
+      <section className="border-b border-[var(--line)] px-6 py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tangerine)]">Desarrollado por</div>
+          <h2 className="mt-2 text-2xl font-bold text-[var(--petrol)]">Mindful Tech Automations</h2>
+          <div className="mt-6 max-w-2xl rounded-xl border border-[var(--line)] bg-white p-6 shadow-sm">
+            <div className="font-bold text-[var(--petrol)]">Elijah Smith</div>
+            <div className="text-xs text-[var(--ink-muted)] mb-3">Fundador — Mindful Tech Automations</div>
+            <p className="text-sm leading-7 text-[var(--charcoal)]">
+              Elijah Smith es el fundador de Mindful Tech Automations, una consultoría de automatización con IA
+              que ayuda a fundadores y operadores a eliminar el desperdicio operacional mediante sistemas de
+              flujos de trabajo inteligentes. Se asocia con Frugal Studio para entregar el Frugality Scanner,
+              convirtiendo los hallazgos diagnósticos en infraestructura empresarial automatizada y escalable.
+            </p>
+            <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--petrol)] hover:text-[var(--tangerine)] transition">
+              <Linkedin size={16} /> Mindful Tech Automations en LinkedIn
+            </a>
           </div>
         </div>
       </section>
@@ -125,7 +135,6 @@ export default function HomeES() {
       {/* ── CTA final ─────────────────────────────────────────────────── */}
       <section className="px-6 py-20">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-bold text-[var(--petrol)]">Construido para decisiones operacionales más inteligentes.</h2>
           <p className="mt-3 max-w-2xl text-[var(--charcoal)]">
             Este diagnóstico GRATUITO es el punto de entrada directo a una Auditoría de Inteligencia Operacional
             pagada con Frugal Studio powered by Mindful Tech Automations, estableciendo el marco para la

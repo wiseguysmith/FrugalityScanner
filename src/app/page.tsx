@@ -1,12 +1,10 @@
 "use client";
 
-import { ArrowRight, Gauge, Layers3, LineChart, Workflow } from "lucide-react";
+import { ArrowRight, Gauge, Layers3, LineChart, Linkedin, Workflow } from "lucide-react";
 import { ButtonLink } from "@/components/ButtonLink";
 import type { LucideIcon } from "lucide-react";
 
-// TODO: Download the consulting photo from Google Drive and place at /public/consulting-photo.jpg
-// Drive link: https://drive.google.com/open?id=1gh7kpkcx5sGfTmA8qJrFXJ6akkZxYrMZ
-const CONSULTING_PHOTO = "/consulting-photo.jpg";
+const LINKEDIN_URL = "https://www.linkedin.com/company/mindfultechnologies";
 
 const measures: [string, string, LucideIcon][] = [
   ["Workflow Friction", "Where manual handoffs and redundant approvals slow down your daily execution velocity.", Workflow],
@@ -70,12 +68,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Frugal Scanner Assessment pillars ─────────────────────────────── */}
+      {/* ── Four diagnostic pillars ───────────────────────────────────────── */}
       <section className="border-b border-[var(--line)] px-6 py-16">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tangerine)]">
-              Frugal Scanner Assessment
+              Frugality Scanner Assessment
             </div>
             <h2 className="mt-2 text-3xl font-bold text-[var(--petrol)]">Four diagnostic pillars</h2>
           </div>
@@ -95,36 +93,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Who it is for — two columns with face photo ───────────────────── */}
+      {/* ── Who it is for — 3 full-width cards ───────────────────────────── */}
       <section className="section-alt border-b border-[var(--line)] px-6 py-16">
         <div className="mx-auto max-w-7xl">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            {/* Info boxes */}
-            <div className="flex flex-col gap-5">
-              {infoBoxes.map(({ title, text }) => (
-                <div key={title} className="rounded-xl border border-[var(--line)] bg-white p-6 shadow-sm">
-                  <h3 className="font-bold text-[var(--petrol)]">{title}</h3>
-                  <p className="mt-2 text-sm leading-7 text-[var(--charcoal)]">{text}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Face / consulting photo */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="relative">
-                <img
-                  src={CONSULTING_PHOTO}
-                  alt="Felipe Hernández Villa-Roel — Frugal Studio"
-                  className="h-[480px] w-[360px] rounded-2xl object-cover shadow-xl"
-                  onError={(e) => {
-                    // Hide the broken image placeholder gracefully
-                    (e.currentTarget.parentElement as HTMLElement).style.display = "none";
-                  }}
-                />
-                {/* Decorative petrol border accent */}
-                <div className="absolute -bottom-3 -right-3 -z-10 h-full w-full rounded-2xl border-2 border-[var(--petrol)] opacity-20" />
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-[var(--petrol)]">Built for sharper operating decisions.</h2>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            {infoBoxes.map(({ title, text }) => (
+              <div key={title} className="rounded-xl border border-[var(--line)] bg-white p-6 shadow-sm">
+                <h3 className="font-bold text-[var(--petrol)]">{title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[var(--charcoal)]">{text}</p>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Team / Powered by ─────────────────────────────────────────────── */}
+      <section className="border-b border-[var(--line)] px-6 py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tangerine)]">Powered by</div>
+          <h2 className="mt-2 text-2xl font-bold text-[var(--petrol)]">Mindful Tech Automations</h2>
+          <div className="mt-6 max-w-2xl rounded-xl border border-[var(--line)] bg-white p-6 shadow-sm">
+            <div className="font-bold text-[var(--petrol)]">Elijah Smith</div>
+            <div className="text-xs text-[var(--ink-muted)] mb-3">Founder — Mindful Tech Automations</div>
+            <p className="text-sm leading-7 text-[var(--charcoal)]">
+              Elijah Smith is the founder of Mindful Tech Automations, an AI process automation consultancy
+              helping founders and operators eliminate operational waste through intelligent workflow systems.
+              He partners with Frugal Studio to deliver the Frugality Scanner — turning diagnostic insights
+              into automated, scalable business infrastructure.
+            </p>
+            <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--petrol)] hover:text-[var(--tangerine)] transition">
+              <Linkedin size={16} /> Mindful Tech Automations on LinkedIn
+            </a>
           </div>
         </div>
       </section>
@@ -132,7 +135,6 @@ export default function Home() {
       {/* ── Bottom CTA ────────────────────────────────────────────────────── */}
       <section className="px-6 py-20">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-bold text-[var(--petrol)]">Built for sharper operating decisions.</h2>
           <p className="mt-3 max-w-2xl text-[var(--charcoal)]">
             This FREE diagnostic serves as the direct entry point to a paid Operational Intelligence Audit
             with Frugal Studio powered by Mindful Tech Automations, setting the framework for full workflow
