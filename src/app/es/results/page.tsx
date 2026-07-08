@@ -91,16 +91,16 @@ export default function ResultsPageES() {
           ) : (
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="font-semibold text-[var(--petrol)]">¿Listo para recibir tu reporte completo?</div>
+                <div className="font-semibold text-[var(--petrol)]">Obtén más información y detalles recibiendo tu Reporte Completo de Frugality</div>
                 <div className="mt-1 text-sm text-[var(--ink-muted)]">
-                  {reportStatus === "sending" ? "Generando tu reporte — solo tomará un momento…"
+                  {reportStatus === "sending" ? "Estamos creando tu reporte completo — solo tomará un momento. Por favor revisa la carpeta de spam de tu correo."
                     : reportStatus === "error" ? "Hubo un problema al preparar tu reporte. Haz clic abajo para continuar de todas formas."
                     : "Tu reporte está listo. Haz clic abajo para enviarlo a tu correo."}
                 </div>
               </div>
               <button type="button" onClick={handleReceiveReport}
                 className="inline-flex h-12 shrink-0 items-center gap-2 rounded-lg bg-[var(--tangerine)] px-6 text-sm font-bold text-white transition hover:bg-[var(--accent-strong)]">
-                <FileText size={16} /> Haz clic aquí para recibir el reporte completo
+                <FileText size={16} /> Haz clic para recibir el Reporte Completo por correo
               </button>
             </div>
           )}
