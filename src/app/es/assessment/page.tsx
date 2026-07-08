@@ -10,8 +10,6 @@ import {
   goalBucket,
   initialAnswers,
   metricDefinitions,
-  organizationTypes,
-  teamSizes,
   toolGroups,
   type AssessmentAnswers,
   type OrganizationType,
