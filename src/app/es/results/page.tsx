@@ -37,6 +37,21 @@ const SHORT_DESC_ES: Record<string, string> = {
 
 const ES_STATUS = { optimized: "Optimizado", moderate: "Moderado", needsAttention: "Necesita Atención", critical: "Crítico" };
 
+const TOP_FINDINGS_ES: Record<string, string> = {
+  "Lead Leakage: inbound opportunities are likely losing value because follow-up is slower than the business can afford.":
+    "Fuga de Pipeline: las oportunidades entrantes están perdiendo valor porque el seguimiento es más lento de lo que el negocio puede permitirse.",
+  "Automation Gap: manual re-entry is consuming time that should be reserved for selling, delivery, or strategic execution.":
+    "Brecha de Automatización: la reingesta manual consume tiempo que debería reservarse para ventas, entrega o ejecución estratégica.",
+  "Founder Dependency: leadership intervention appears to be required too often for routine work to keep moving.":
+    "Dependencia del Fundador: la intervención del liderazgo parece requerirse con demasiada frecuencia para que el trabajo rutinario avance.",
+  "Structural Debt: tool fragmentation and undocumented workflows are raising coordination costs.":
+    "Deuda Estructural: la fragmentación de herramientas y los flujos no documentados están elevando los costos de coordinación.",
+  "Process Complexity: high-value people may be carrying low-value coordination work across the workflow.":
+    "Complejidad de Procesos: personas de alto valor pueden estar cargando trabajo de coordinación de bajo valor en el flujo de trabajo.",
+  "Knowledge Debt: operational knowledge living in people's heads instead of documented systems creates execution risk.":
+    "Deuda de Conocimiento: el conocimiento operacional que vive en la mente de las personas en lugar de sistemas documentados crea riesgo de ejecución.",
+};
+
 export default function ResultsPageES() {
   const router = useRouter();
   const submitted = useRef(false);
@@ -144,7 +159,7 @@ export default function ResultsPageES() {
             {scores.topFindings.map((finding, i) => (
               <div key={finding} className="rounded-lg bg-[var(--panel)] p-4">
                 <span className="mr-2 font-bold text-[var(--tangerine)]">{i + 1}.</span>
-                <span className="text-[var(--charcoal)]">{finding}</span>
+                <span className="text-[var(--charcoal)]">{TOP_FINDINGS_ES[finding] ?? finding}</span>
               </div>
             ))}
           </div>
