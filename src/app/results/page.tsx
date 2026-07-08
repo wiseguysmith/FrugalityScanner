@@ -29,13 +29,16 @@ type StoredAssessment = {
 export default function ResultsPage() {
   const router = useRouter();
   const submitted = useRef(false);
-  const [stored] = useState<StoredAssessment | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = window.localStorage.getItem("frugality-assessment");
-    return raw ? JSON.parse(raw) : null;
-  });
+  const [stored, setStored] = useState<StoredAssessment | null>(null);
+  const [ready, setReady] = useState(false);
   const [reportStatus, setReportStatus] = useState<"sending" | "sent" | "error">("sending");
   const [confirmVisible, setConfirmVisible] = useState(false);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem("frugality-assessment");
+    setStored(raw ? JSON.parse(raw) : null);
+    setReady(true);
+  }, []);
 
   useEffect(() => {
     if (!stored || submitted.current) return;
@@ -60,6 +63,10 @@ export default function ResultsPage() {
       })
       .catch(() => setReportStatus("error"));
   }, [stored]);
+
+  if (!ready) {
+    return <main className="min-h-screen bg-[var(--panel)]" />;
+  }
 
   if (!stored) {
     return (
