@@ -30,6 +30,32 @@ type OtherInputs = {
 const initialContact: ContactInfo = { firstName: "", lastName: "", email: "", company: "", website: "", linkedinUrl: "", phone: "" };
 const initialOtherInputs: OtherInputs = { organizationTypeOther: "", businessGoalRanking: [], toolGroupOthers: {}, dealSizeRange: "", fundingStructure: "" };
 
+const businessGoalsES: Record<string, string[]> = {
+  startup: [
+    "Asegurar financiamiento o apoyo de subvenciones",
+    "Lanzar o escalar un producto",
+    "Validar MVP o nueva funcionalidad",
+    "Liberar a fundadores/desarrolladores de tareas administrativas",
+    "Automatizar procesos manuales recurrentes",
+    "Otro",
+  ],
+  commercial: [
+    "Detener la fuga de prospectos y automatizar el onboarding",
+    "Proteger los márgenes operativos reduciendo costos internos",
+    "Recuperar tiempo ejecutivo del papeleo",
+    "Estandarizar los flujos de trabajo del equipo interno",
+    "Automatizar procesos manuales recurrentes",
+    "Otro",
+  ],
+  ngo: [
+    "Optimizar el onboarding de donantes o participantes",
+    "Mejorar la coordinación interna de proyectos",
+    "Simplificar las estructuras de reporte",
+    "Automatizar procesos manuales recurrentes",
+    "Otro",
+  ],
+};
+
 const STEPS = ["Contacto", "Tipo de Negocio", "Objetivo Principal", "Escala del Equipo", "Stack Tecnológico", "Métricas", "Finanzas"];
 const METRIC_KEYS = metricDefinitions.map((m) => String(m.key));
 
@@ -109,7 +135,7 @@ export default function AssessmentPageES() {
   const [emailError, setEmailError] = useState("");
 
   const currentGoalBucket = goalBucket(answers.organizationType);
-  const currentGoals = businessGoals[currentGoalBucket];
+  const currentGoals = businessGoalsES[currentGoalBucket] ?? businessGoals[currentGoalBucket];
 
   function updateContact<T extends keyof ContactInfo>(key: T, value: string) { setContact((c) => ({ ...c, [key]: value })); }
   function update<T extends keyof AssessmentAnswers>(key: T, value: AssessmentAnswers[T]) { setAnswers((a) => ({ ...a, [key]: value })); }
