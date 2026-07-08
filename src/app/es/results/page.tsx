@@ -18,13 +18,24 @@ type StoredAssessment = {
 };
 
 const METRIC_LABELS_ES: Record<string, string> = {
-  leadResponseTime: "Tiempo de Respuesta a Prospectos",
+  dataReentry: "Nivel de Automatización",
+  leadDropOff: "% de Fuga de Pipeline",
+  founderFatigue: "Fatiga del Fundador",
+  processComplexity: "Complejidad de Procesos",
   documentationMaturity: "Madurez de Documentación",
-  manualTaskLoad: "Carga de Tareas Manuales",
-  reportingLatency: "Latencia en Reportes",
-  onboardingFriction: "Fricción en Incorporación",
-  toolIntegrationGaps: "Brechas de Integración de Herramientas",
+  founderDependency: "Dependencia del Fundador",
 };
+
+const SHORT_DESC_ES: Record<string, string> = {
+  dataReentry: "Cuánto tiempo pierde tu equipo copiando, pegando o reescribiendo datos manualmente entre sistemas desconectados.",
+  leadDropOff: "Fuga en el pipeline causada por seguimiento lento, enrutamiento manual y herramientas de comunicación desconectadas.",
+  founderFatigue: "Cuántas horas por semana pierde el liderazgo en administración rutinaria en lugar de crecimiento, ventas o estrategia.",
+  processComplexity: "La fricción y el peso estructural de los flujos de trabajo principales de inicio a fin.",
+  documentationMaturity: "Cuánto conocimiento operacional vive en una fuente centralizada de verdad vs. en la mente de las personas.",
+  founderDependency: "Cuánto depende la ejecución diaria de la presencia, aprobaciones, memoria o supervisión manual del fundador.",
+};
+
+const ES_STATUS = { optimized: "Optimizado", moderate: "Moderado", needsAttention: "Necesita Atención", critical: "Crítico" };
 
 export default function ResultsPageES() {
   const router = useRouter();
@@ -114,15 +125,15 @@ export default function ResultsPageES() {
 
         {/* Score cards */}
         <div className="grid gap-4 md:grid-cols-2">
-          <ScoreDial label="Operational Intelligence Index" value={scores.operationalIntelligenceIndex} highIsGood={true} />
+          <ScoreDial label="Índice de Inteligencia Operacional" value={scores.operationalIntelligenceIndex} highIsGood={true} statusLabels={ES_STATUS} />
           <div className="rounded-xl border border-[var(--line)] bg-white p-5 shadow-sm">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Oportunidad de Ahorro Estimada</div>
             <div className="mt-4 text-4xl font-bold text-[#1a8a50]">{currency(scores.opportunityLow)}–{currency(scores.opportunityHigh)}</div>
             <div className="mt-2 text-xs font-semibold text-[#1a8a50]">Potencial de recuperación mensual</div>
             <div className="mt-1 text-xs text-[var(--ink-muted)]">Estimación diagnóstica — no es una garantía</div>
           </div>
-          <ScoreDial label="Operational Friction Score" value={scores.operationalFrictionScore} highIsGood={false} />
-          <ScoreDial label="Founder Dependency Index" value={scores.founderDependencyIndex} highIsGood={false} />
+          <ScoreDial label="Puntuación de Fricción Operacional" value={scores.operationalFrictionScore} highIsGood={false} statusLabels={ES_STATUS} />
+          <ScoreDial label="Índice de Dependencia del Fundador" value={scores.founderDependencyIndex} highIsGood={false} statusLabels={ES_STATUS} />
         </div>
 
         {/* Top findings */}
@@ -157,7 +168,7 @@ export default function ResultsPageES() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="font-semibold text-[var(--petrol)]">{METRIC_LABELS_ES[String(def.key)] ?? def.label}</div>
-                      <div className="mt-1 text-sm text-[var(--ink-muted)]">{def.shortDesc}</div>
+                      <div className="mt-1 text-sm text-[var(--ink-muted)]">{SHORT_DESC_ES[String(def.key)] ?? def.shortDesc}</div>
                     </div>
                     <div className={`shrink-0 rounded-lg px-3 py-1 text-sm font-bold ${severity.badge}`}>{rawValue}/5</div>
                   </div>

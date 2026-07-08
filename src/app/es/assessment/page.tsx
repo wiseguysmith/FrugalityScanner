@@ -65,64 +65,98 @@ function groupToolIds(groupLabel: string, tools: string[]) {
 }
 
 const METRIC_LABELS_ES: Record<string, string> = {
-  leadResponseTime: "Tiempo de Respuesta a Prospectos",
+  dataReentry: "Nivel de Automatización",
+  leadDropOff: "% de Fuga de Pipeline",
+  founderFatigue: "Fatiga del Fundador",
+  processComplexity: "Complejidad de Procesos",
   documentationMaturity: "Madurez de Documentación",
-  manualTaskLoad: "Carga de Tareas Manuales",
-  reportingLatency: "Latencia en Reportes",
-  onboardingFriction: "Fricción en Incorporación",
-  toolIntegrationGaps: "Brechas de Integración de Herramientas",
+  founderDependency: "Dependencia del Fundador",
+};
+
+const SHORT_DESC_ES: Record<string, string> = {
+  dataReentry: "Cuánto tiempo pierde tu equipo copiando, pegando o reescribiendo datos manualmente entre sistemas desconectados.",
+  leadDropOff: "Fuga en el pipeline causada por seguimiento lento, enrutamiento manual y herramientas de comunicación desconectadas.",
+  founderFatigue: "Cuántas horas por semana pierde el liderazgo en administración rutinaria en lugar de crecimiento, ventas o estrategia.",
+  processComplexity: "La fricción y el peso estructural de los flujos de trabajo principales de inicio a fin.",
+  documentationMaturity: "Cuánto conocimiento operacional vive en una fuente centralizada de verdad vs. en la mente de las personas.",
+  founderDependency: "Cuánto depende la ejecución diaria de la presencia, aprobaciones, memoria o supervisión manual del fundador.",
 };
 
 const SCALE_ES: Record<string, string[]> = {
-  leadResponseTime: [
-    "Menos de 1 hora — respuesta casi inmediata a nuevos prospectos",
-    "1–4 horas — respuesta rápida durante el día",
-    "4–24 horas — mismo día, con demoras ocasionales",
-    "1–3 días — demoras frecuentes en el seguimiento",
-    "3–7 días — los prospectos quedan en espera varios días",
-    "Más de 1 semana — sin seguimiento consistente, prospectos se enfrían",
+  dataReentry: [
+    "Los datos fluyen sin problemas entre sistemas. No se requiere entrada manual.",
+    "Los flujos principales están integrados; solo se necesitan ajustes menores ocasionales.",
+    "Existen integraciones básicas pero el equipo aún sincroniza manualmente algunos datos diariamente.",
+    "Copiar y pegar prospectos cerrados en facturación o rastreadores de proyectos es rutinario.",
+    "Se invierte tiempo significativo semanalmente duplicando archivos entre plataformas desconectadas.",
+    "Personal senior retranscribe registros idénticos diariamente, causando retrasos y fatiga.",
+  ],
+  leadDropOff: [
+    "Entradas capturadas y enrutadas al instante. Respuesta en menos de 5 minutos. (~0% fuga)",
+    "Flujos de trabajo básicos automatizados con solo pequeños retrasos. (~5% fuga)",
+    "Seguimiento básico en CRM pero la sincronización manual ralentiza el seguimiento a horas. (~15% fuga)",
+    "Los prospectos se enfrían porque los datos están divididos entre WhatsApp, correo y hojas de cálculo. (~25% fuga)",
+    "Sin fuente única de verdad; las oportunidades de alto valor se pierden. (~35% fuga)",
+    "La mitad de los prospectos entrantes se enfrían por la lenta coordinación manual. (~50% fuga)",
+  ],
+  founderFatigue: [
+    "Capacidad de liderazgo enfocada en estrategia, ingresos o capital. (0 hrs/semana)",
+    "Administración mayormente automatizada; solo se necesita una revisión rápida semanal. (~2 hrs/semana)",
+    "Las operaciones funcionan, pero la fragmentación de herramientas genera pequeñas tareas manuales semanales. (~5 hrs/semana)",
+    "La administración distrae regularmente al liderazgo de la estrategia. (~10 hrs/semana)",
+    "Casi dos días laborales por semana se dedican a actualizar manualmente sistemas desconectados. (~15 hrs/semana)",
+    "Los fundadores atrapados en ciclos administrativos que crean un techo al crecimiento. (20+ hrs/semana)",
+  ],
+  processComplexity: [
+    "Flujos de trabajo completamente optimizados y estandarizados. Sin carga manual.",
+    "Claros y mayormente estandarizados; se producen ajustes menores ocasionalmente.",
+    "Existen SOPs, pero quedan 1–2 puntos de control manuales o traspasos heredados.",
+    "Los flujos se enredan; las solicitudes personalizadas requieren seguimiento manual.",
+    "La entrega estándar requiere navegar pasos no documentados o aprobaciones redundantes.",
+    "Flujos tan complicados que se pierden tareas; completarlas requiere resolución constante de problemas.",
   ],
   documentationMaturity: [
-    "Completamente documentado — PSOPs, guías de incorporación, playbooks actualizados",
-    "Mayormente documentado — documentación core existe, algunas brechas menores",
-    "Parcialmente documentado — áreas clave documentadas, gaps significativos en otras",
-    "Mínimamente documentado — solo documentación básica o fragmentaria",
-    "Casi sin documentación — la mayor parte vive en la cabeza de las personas",
-    "Sin documentación — todo depende de conocimiento verbal o individual",
+    "Procesos principales en una fuente centralizada de verdad. Un nuevo empleado puede ejecutar de forma autónoma.",
+    "Flujos de trabajo principales documentados; los casos límite aún necesitan aclaración ocasional.",
+    "Existen SOPs pero no se actualizan consistentemente.",
+    "Documentación dispersa entre Slack, drives personales, correo y archivos aleatorios.",
+    "Los procesos viven mayormente en la mente de las personas y deben explicarse repetidamente.",
+    "Sin documentación centralizada. La entrega se congela cuando una persona clave no está disponible.",
   ],
-  manualTaskLoad: [
-    "Mínimo — casi todos los procesos están automatizados",
-    "Bajo — la mayoría de los procesos están automatizados, mínima intervención manual",
-    "Moderado — mezcla de procesos automatizados y manuales",
-    "Alto — la mayoría de los procesos requieren intervención manual",
-    "Muy alto — casi todos los flujos de trabajo son manuales",
-    "Completamente manual — sin automatización en ningún proceso",
-  ],
-  reportingLatency: [
-    "Tiempo real — dashboards en vivo actualizados continuamente",
-    "Diario — reportes generados automáticamente cada día",
-    "Semanal — reportes disponibles dentro de la semana",
-    "Quincenal — reportes con demoras de 1–2 semanas",
-    "Mensual — datos con demoras de semanas o un mes",
-    "Sin reporte regular — se compila manualmente bajo demanda",
-  ],
-  onboardingFriction: [
-    "Sin fricción — proceso fluido, activos claros y tiempo de incorporación corto",
-    "Fricción mínima — proceso mayormente fluido con pasos menores manuales",
-    "Algo de fricción — algunas ineficiencias que ralentizan la incorporación",
-    "Fricción moderada — múltiples pasos manuales o falta de información",
-    "Alta fricción — proceso lento, confuso o inconsistente",
-    "Incorporación rota — sin proceso establecido, inconsistente o completamente manual",
-  ],
-  toolIntegrationGaps: [
-    "Completamente integrado — todos los sistemas conectados y sincronizados",
-    "Mayormente integrado — pocas brechas menores de datos",
-    "Parcialmente integrado — algunas herramientas conectadas, con gaps notables",
-    "Débilmente integrado — pocos sistemas conectados, duplicación frecuente",
-    "Mínimamente integrado — herramientas mayormente en silos con transferencias manuales",
-    "Sin integración — herramientas completamente desconectadas",
+  founderDependency: [
+    "Las operaciones rutinarias funcionan a través de sistemas claros y marcos de equipo estandarizados.",
+    "El liderazgo solo se necesita para casos excepcionales o alineación estratégica.",
+    "Los días estándar transcurren sin problemas; 1–2 hitos aún necesitan revisión del fundador.",
+    "El trabajo se detiene regularmente hasta que el fundador desbloquea una tarea o explica un proceso.",
+    "El equipo carece de sistemas para ejecutar de forma asíncrona; el fundador impulsa el trabajo estándar.",
+    "Sin memoria estructural. La ejecución se congela cuando el liderazgo no está disponible.",
   ],
 };
+
+const organizationTypesES: string[] = [
+  "Startup Digital",
+  "Startup de Hardware / DeepTech",
+  "Servicios Profesionales",
+  "Profesional Individual",
+  "Bienes Raíces / Servicios Inmobiliarios",
+  "Hospitalidad / Turismo",
+  "ONG / Fundación",
+  "Empresa Comercial",
+  "Otro",
+];
+
+const orgTypeToEN: Record<string, string> = {
+  "Startup Digital": "Digital Startup",
+  "Startup de Hardware / DeepTech": "Hardware / DeepTech Startup",
+  "Servicios Profesionales": "Professional Services",
+  "Profesional Individual": "Individual Professional",
+  "Bienes Raíces / Servicios Inmobiliarios": "Real Estate / Property Services",
+  "Hospitalidad / Turismo": "Hospitality / Tourism",
+  "ONG / Fundación": "NGO / Foundation",
+  "Empresa Comercial": "Commercial Firm",
+  "Otro": "Other",
+};
+const orgTypeToES: Record<string, string> = Object.fromEntries(Object.entries(orgTypeToEN).map(([es, en]) => [en, es]));
 
 export default function AssessmentPageES() {
   const router = useRouter();
@@ -233,8 +267,9 @@ export default function AssessmentPageES() {
           {/* Step 1: Tipo de Negocio */}
           {step === 1 && (
             <div>
-              <ChoiceGrid title="¿Qué tipo de organización eres?" options={organizationTypes}
-                value={answers.organizationType} onSelect={(v) => update("organizationType", v as OrganizationType)} />
+              <ChoiceGrid title="¿Qué tipo de organización eres?" options={organizationTypesES}
+                value={orgTypeToES[answers.organizationType] ?? answers.organizationType}
+                onSelect={(v) => update("organizationType", (orgTypeToEN[v] ?? v) as OrganizationType)} />
               {answers.organizationType === "Other" && (
                 <div className="mt-4">
                   <ContactInput label="Describe tu tipo de negocio" value={otherInputs.organizationTypeOther}
@@ -465,7 +500,7 @@ function MetricChoiceCardES({ definition, value, onSelect }: {
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="font-bold text-[var(--petrol)]">{labelES}</div>
-          <div className="mt-1 text-sm text-[var(--charcoal)]">{definition.shortDesc}</div>
+          <div className="mt-1 text-sm text-[var(--charcoal)]">{SHORT_DESC_ES[key] ?? definition.shortDesc}</div>
           <button type="button" onClick={() => setExpanded((e) => !e)}
             className="mt-1.5 inline-flex items-center gap-1 text-xs text-[var(--tangerine)] hover:underline">
             {expanded ? <>Ocultar detalles <ChevronUp size={12} /></> : <>¿Qué significa esto? <ChevronDown size={12} /></>}
